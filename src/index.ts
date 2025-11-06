@@ -18,24 +18,72 @@ dotenv.config();
 
 const app = express();
 
-// Configuración CORS ultra permisiva para desarrollo
+// Función auxiliar para verificar si un origen es válido en desarrollo
+const isAllowedOrigin = (origin: string | undefined): boolean => {
+  if (!origin) return false;
+  
+  const isDevelopment = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+  
+  if (isDevelopment) {
+    // Permitir localhost y 127.0.0.1 en cualquier puerto
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return true;
+    }
+    
+    // Permitir direcciones IP de red local (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+    const localNetworkPatterns = [
+      /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:\d+$/,
+      /^http:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d+$/,
+      /^http:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\.\d{1,3}\.\d{1,3}:\d+$/,
+    ];
+    
+    for (const pattern of localNetworkPatterns) {
+      if (pattern.test(origin)) {
+        return true;
+      }
+    }
+  }
+  
+  // En producción, verificar lista de orígenes permitidos
+  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()) || [];
+  return allowedOrigins.includes(origin);
+};
+
+// Configuración CORS corregida
 app.use((req, res, next) => {
-  const origin = req.get('Origin') || '*';
+  const origin = req.get('Origin');
+  const isDevelopment = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
   
-  // Permitir todos los orígenes en desarrollo
-  res.header('Access-Control-Allow-Origin', origin);
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
-  res.header('Access-Control-Expose-Headers', 'Authorization, Content-Type');
+  // Si hay un origen y está permitido, usarlo
+  if (origin && isAllowedOrigin(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
+    res.header('Access-Control-Expose-Headers', 'Authorization, Content-Type');
+    
+    console.log(`📡 ${req.method} ${req.path} - Origin: ${origin} ✅`);
+  } 
+  // Si no hay origen pero estamos en desarrollo, permitir (para Postman, curl, etc.)
+  else if (!origin && isDevelopment) {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
+    res.header('Access-Control-Expose-Headers', 'Authorization, Content-Type');
+    // NO establecer credentials cuando usamos '*'
+    
+    console.log(`📡 ${req.method} ${req.path} - No origin (Postman/curl) ✅`);
+  }
+  // Si hay origen pero no está permitido
+  else if (origin) {
+    console.log(`🚫 ${req.method} ${req.path} - Origin bloqueado: ${origin}`);
+    // No establecer headers CORS, el navegador rechazará la petición
+  }
   
-  // Log para debugging
-  console.log(`📡 ${req.method} ${req.path} - Origin: ${origin}`);
-  
-  // Manejar preflight
+  // Manejar preflight (OPTIONS)
   if (req.method === 'OPTIONS') {
     console.log('✅ Preflight request handled');
-    return res.status(200).end();
+    return res.status(204).end();
   }
   
   next();
