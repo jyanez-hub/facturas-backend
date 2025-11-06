@@ -24,13 +24,31 @@ jest.mock('../src/utils/pdf.utils', () => ({
 const invoicePDFInstanceMocks = {
   save: jest.fn().mockResolvedValue({})
 };
+const invoicePDFStaticMocks = {
+  find: jest.fn().mockReturnValue({
+    populate: jest.fn().mockResolvedValue([])
+  }),
+  findOne: jest.fn().mockResolvedValue(null),
+  findById: jest.fn().mockResolvedValue(null)
+};
 jest.mock('../src/models/InvoicePDF', () => {
   class MockInvoicePDF {
     constructor(public data: any) {}
     save = invoicePDFInstanceMocks.save;
+    static get find() { 
+      return invoicePDFStaticMocks.find; 
+    }
+    static get findOne() { return invoicePDFStaticMocks.findOne; }
+    static get findById() { return invoicePDFStaticMocks.findById; }
   }
   return { __esModule: true, default: MockInvoicePDF };
 });
+const invoicePDF = {
+  ...invoicePDFInstanceMocks,
+  ...invoicePDFStaticMocks,
+  getConstructor: () => jest.requireMock('../src/models/InvoicePDF').default,
+  get class() { return jest.requireMock('../src/models/InvoicePDF').default; }
+};
 
 // --- Helper to create method mocks ---
 function createModelInstanceMocks() {
@@ -361,7 +379,537 @@ describe('CRUD endpoints', () => {
   });
 });
 
-// Similar tests could be added for other endpoints
+describe('Client endpoints', () => {
+  beforeEach(() => {
+    client.find.mockResolvedValue([{ _id: '1', identificacion: '0923456789', razon_social: 'Test Client' }]);
+    client.findById.mockResolvedValue({ _id: '1', identificacion: '0923456789', razon_social: 'Test Client' });
+    client.save.mockClear();
+    client.findByIdAndUpdate.mockClear();
+    client.findByIdAndDelete.mockClear();
+  });
+
+  it('creates a client', async () => {
+    client.save.mockResolvedValueOnce({ _id: 'newId', identificacion: '0923456789', razon_social: 'New Client' });
+    const res = await request(app)
+      .post('/api/v1/client')
+      .set('Authorization', authHeader)
+      .send({ identificacion: '0923456789', razon_social: 'New Client', email: 'client@test.com' });
+    expect(res.status).toBe(201);
+    expect(client.save).toHaveBeenCalled();
+  });
+
+  it('gets client list', async () => {
+    const res = await request(app).get('/api/v1/client').set('Authorization', authHeader);
+    expect(res.status).toBe(200);
+    expect(client.find).toHaveBeenCalled();
+  });
+
+  it('gets client by id', async () => {
+    const res = await request(app).get('/api/v1/client/1').set('Authorization', authHeader);
+    expect(res.status).toBe(200);
+    expect(client.findById).toHaveBeenCalledWith('1');
+  });
+
+  it('updates client', async () => {
+    client.findByIdAndUpdate.mockResolvedValueOnce({ _id: '1', identificacion: '0923456789', razon_social: 'Updated Client' });
+    const res = await request(app)
+      .put('/api/v1/client/1')
+      .set('Authorization', authHeader)
+      .send({ razon_social: 'Updated Client' });
+    expect(res.status).toBe(200);
+    expect(client.findByIdAndUpdate).toHaveBeenCalledWith('1', { razon_social: 'Updated Client' }, { new: true });
+  });
+
+  it('deletes client', async () => {
+    client.findByIdAndDelete.mockResolvedValueOnce({ _id: '1' });
+    const res = await request(app).delete('/api/v1/client/1').set('Authorization', authHeader);
+    expect(res.status).toBe(200);
+    expect(client.findByIdAndDelete).toHaveBeenCalledWith('1');
+  });
+
+  it('returns 404 when client not found on get', async () => {
+    client.findById.mockResolvedValueOnce(null);
+    const res = await request(app).get('/api/v1/client/999').set('Authorization', authHeader);
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 404 when client not found on update', async () => {
+    client.findByIdAndUpdate.mockResolvedValueOnce(null);
+    const res = await request(app)
+      .put('/api/v1/client/999')
+      .set('Authorization', authHeader)
+      .send({ razon_social: 'Updated' });
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 404 when client not found on delete', async () => {
+    client.findByIdAndDelete.mockResolvedValueOnce(null);
+    const res = await request(app).delete('/api/v1/client/999').set('Authorization', authHeader);
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('Product endpoints', () => {
+  beforeEach(() => {
+    product.find.mockResolvedValue([{ _id: '1', codigo: 'P001', nombre: 'Product 1', precio_venta: 100 }]);
+    product.findById.mockResolvedValue({ _id: '1', codigo: 'P001', nombre: 'Product 1', precio_venta: 100 });
+    product.save.mockClear();
+    product.findByIdAndUpdate.mockClear();
+    product.findByIdAndDelete.mockClear();
+  });
+
+  it('creates a product', async () => {
+    product.save.mockResolvedValueOnce({ _id: 'newId', codigo: 'P001', nombre: 'New Product', precio_venta: 150 });
+    const res = await request(app)
+      .post('/api/v1/product')
+      .set('Authorization', authHeader)
+      .send({ codigo: 'P001', nombre: 'New Product', precio_venta: 150 });
+    expect(res.status).toBe(201);
+    expect(product.save).toHaveBeenCalled();
+  });
+
+  it('gets product list', async () => {
+    const res = await request(app).get('/api/v1/product').set('Authorization', authHeader);
+    expect(res.status).toBe(200);
+    expect(product.find).toHaveBeenCalled();
+  });
+
+  it('gets product by id', async () => {
+    const res = await request(app).get('/api/v1/product/1').set('Authorization', authHeader);
+    expect(res.status).toBe(200);
+    expect(product.findById).toHaveBeenCalledWith('1');
+  });
+
+  it('updates product', async () => {
+    product.findByIdAndUpdate.mockResolvedValueOnce({ _id: '1', codigo: 'P001', nombre: 'Updated Product', precio_venta: 200 });
+    const res = await request(app)
+      .put('/api/v1/product/1')
+      .set('Authorization', authHeader)
+      .send({ precio_venta: 200 });
+    expect(res.status).toBe(200);
+    expect(product.findByIdAndUpdate).toHaveBeenCalledWith('1', { precio_venta: 200 }, { new: true });
+  });
+
+  it('deletes product', async () => {
+    product.findByIdAndDelete.mockResolvedValueOnce({ _id: '1' });
+    const res = await request(app).delete('/api/v1/product/1').set('Authorization', authHeader);
+    expect(res.status).toBe(200);
+    expect(product.findByIdAndDelete).toHaveBeenCalledWith('1');
+  });
+
+  it('returns 404 when product not found on get', async () => {
+    product.findById.mockResolvedValueOnce(null);
+    const res = await request(app).get('/api/v1/product/999').set('Authorization', authHeader);
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 404 when product not found on update', async () => {
+    product.findByIdAndUpdate.mockResolvedValueOnce(null);
+    const res = await request(app)
+      .put('/api/v1/product/999')
+      .set('Authorization', authHeader)
+      .send({ precio_venta: 200 });
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 404 when product not found on delete', async () => {
+    product.findByIdAndDelete.mockResolvedValueOnce(null);
+    const res = await request(app).delete('/api/v1/product/999').set('Authorization', authHeader);
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('IssuingCompany endpoints', () => {
+  beforeEach(() => {
+    issuingCompany.find.mockResolvedValue([{ _id: '1', ruc: '1799999999001', razon_social: 'Test Company' }]);
+    issuingCompany.findById.mockResolvedValue({ _id: '1', ruc: '1799999999001', razon_social: 'Test Company' });
+    issuingCompany.findByIdAndUpdate.mockClear();
+    issuingCompany.findByIdAndDelete.mockClear();
+  });
+
+  it('gets issuing company list', async () => {
+    const res = await request(app).get('/api/v1/issuing-company').set('Authorization', authHeader);
+    expect(res.status).toBe(200);
+    expect(issuingCompany.find).toHaveBeenCalled();
+  });
+
+  it('gets issuing company by id', async () => {
+    const res = await request(app).get('/api/v1/issuing-company/1').set('Authorization', authHeader);
+    expect(res.status).toBe(200);
+    expect(issuingCompany.findById).toHaveBeenCalledWith('1');
+  });
+
+  it('updates issuing company', async () => {
+    issuingCompany.findByIdAndUpdate.mockResolvedValueOnce({ 
+      _id: '1', 
+      ruc: '1799999999001', 
+      razon_social: 'Updated Company' 
+    });
+    const res = await request(app)
+      .put('/api/v1/issuing-company/1')
+      .set('Authorization', authHeader)
+      .send({ razon_social: 'Updated Company' });
+    expect(res.status).toBe(200);
+  });
+
+  it('deletes issuing company', async () => {
+    issuingCompany.findByIdAndDelete.mockResolvedValueOnce({ _id: '1' });
+    const res = await request(app).delete('/api/v1/issuing-company/1').set('Authorization', authHeader);
+    expect(res.status).toBe(200);
+    expect(issuingCompany.findByIdAndDelete).toHaveBeenCalledWith('1');
+  });
+
+  it('returns 404 when company not found on get', async () => {
+    issuingCompany.findById.mockResolvedValueOnce(null);
+    const res = await request(app).get('/api/v1/issuing-company/999').set('Authorization', authHeader);
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 404 when company not found on update', async () => {
+    issuingCompany.findByIdAndUpdate.mockResolvedValueOnce(null);
+    const res = await request(app)
+      .put('/api/v1/issuing-company/999')
+      .set('Authorization', authHeader)
+      .send({ razon_social: 'Updated' });
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 404 when company not found on delete', async () => {
+    issuingCompany.findByIdAndDelete.mockResolvedValueOnce(null);
+    const res = await request(app).delete('/api/v1/issuing-company/999').set('Authorization', authHeader);
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('Invoice basic endpoints', () => {
+  beforeEach(() => {
+    invoice.find.mockResolvedValue([{ _id: '1', secuencial: '000000001', cliente_id: 'clientId1' }]);
+    invoice.findById.mockResolvedValue({ _id: '1', secuencial: '000000001', cliente_id: 'clientId1' });
+    invoice.save.mockClear();
+    invoice.findByIdAndUpdate.mockClear();
+    invoice.findByIdAndDelete.mockClear();
+  });
+
+  it('creates an invoice (basic)', async () => {
+    invoice.save.mockResolvedValueOnce({ _id: 'newId', secuencial: '000000001', cliente_id: 'clientId1' });
+    const res = await request(app)
+      .post('/api/v1/invoice')
+      .set('Authorization', authHeader)
+      .send({ cliente_id: 'clientId1', fecha_emision: '2025-01-01', total: 100 });
+    expect(res.status).toBe(201);
+    expect(invoice.save).toHaveBeenCalled();
+  });
+
+  it('gets invoice list', async () => {
+    const res = await request(app).get('/api/v1/invoice').set('Authorization', authHeader);
+    expect(res.status).toBe(200);
+    expect(invoice.find).toHaveBeenCalled();
+  });
+
+  it('gets invoice by id', async () => {
+    const res = await request(app).get('/api/v1/invoice/1').set('Authorization', authHeader);
+    expect(res.status).toBe(200);
+    expect(invoice.findById).toHaveBeenCalledWith('1');
+  });
+
+  it('updates invoice', async () => {
+    invoice.findByIdAndUpdate.mockResolvedValueOnce({ _id: '1', secuencial: '000000001', sri_estado: 'AUTORIZADO' });
+    const res = await request(app)
+      .put('/api/v1/invoice/1')
+      .set('Authorization', authHeader)
+      .send({ sri_estado: 'AUTORIZADO' });
+    expect(res.status).toBe(200);
+    expect(invoice.findByIdAndUpdate).toHaveBeenCalledWith('1', { sri_estado: 'AUTORIZADO' }, { new: true });
+  });
+
+  it('deletes invoice', async () => {
+    invoice.findByIdAndDelete.mockResolvedValueOnce({ _id: '1' });
+    const res = await request(app).delete('/api/v1/invoice/1').set('Authorization', authHeader);
+    expect(res.status).toBe(200);
+    expect(invoice.findByIdAndDelete).toHaveBeenCalledWith('1');
+  });
+
+  it('returns 404 when invoice not found on get', async () => {
+    invoice.findById.mockResolvedValueOnce(null);
+    const res = await request(app).get('/api/v1/invoice/999').set('Authorization', authHeader);
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 404 when invoice not found on update', async () => {
+    invoice.findByIdAndUpdate.mockResolvedValueOnce(null);
+    const res = await request(app)
+      .put('/api/v1/invoice/999')
+      .set('Authorization', authHeader)
+      .send({ sri_estado: 'AUTORIZADO' });
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 404 when invoice not found on delete', async () => {
+    invoice.findByIdAndDelete.mockResolvedValueOnce(null);
+    const res = await request(app).delete('/api/v1/invoice/999').set('Authorization', authHeader);
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('InvoiceDetail endpoints', () => {
+  beforeEach(() => {
+    invoiceDetail.find.mockResolvedValue([{ _id: '1', factura_id: 'facturaId1', producto_id: 'prodId1' }]);
+    invoiceDetail.findById.mockResolvedValue({ _id: '1', factura_id: 'facturaId1', producto_id: 'prodId1' });
+    invoiceDetail.save.mockClear();
+    invoiceDetail.findByIdAndUpdate.mockClear();
+    invoiceDetail.findByIdAndDelete.mockClear();
+  });
+
+  it('creates an invoice detail', async () => {
+    invoiceDetail.save.mockResolvedValueOnce({ _id: 'newId', factura_id: 'facturaId1', producto_id: 'prodId1', cantidad: 2 });
+    const res = await request(app)
+      .post('/api/v1/invoice-detail')
+      .set('Authorization', authHeader)
+      .send({ factura_id: 'facturaId1', producto_id: 'prodId1', cantidad: 2, precio_unitario: 100 });
+    expect(res.status).toBe(201);
+    expect(invoiceDetail.save).toHaveBeenCalled();
+  });
+
+  it('gets invoice detail list', async () => {
+    const res = await request(app).get('/api/v1/invoice-detail').set('Authorization', authHeader);
+    expect(res.status).toBe(200);
+    expect(invoiceDetail.find).toHaveBeenCalled();
+  });
+
+  it('gets invoice detail by id', async () => {
+    const res = await request(app).get('/api/v1/invoice-detail/1').set('Authorization', authHeader);
+    expect(res.status).toBe(200);
+    expect(invoiceDetail.findById).toHaveBeenCalledWith('1');
+  });
+
+  it('updates invoice detail', async () => {
+    invoiceDetail.findByIdAndUpdate.mockResolvedValueOnce({ _id: '1', factura_id: 'facturaId1', cantidad: 5 });
+    const res = await request(app)
+      .put('/api/v1/invoice-detail/1')
+      .set('Authorization', authHeader)
+      .send({ cantidad: 5 });
+    expect(res.status).toBe(200);
+    expect(invoiceDetail.findByIdAndUpdate).toHaveBeenCalledWith('1', { cantidad: 5 }, { new: true });
+  });
+
+  it('deletes invoice detail', async () => {
+    invoiceDetail.findByIdAndDelete.mockResolvedValueOnce({ _id: '1' });
+    const res = await request(app).delete('/api/v1/invoice-detail/1').set('Authorization', authHeader);
+    expect(res.status).toBe(200);
+    expect(invoiceDetail.findByIdAndDelete).toHaveBeenCalledWith('1');
+  });
+
+  it('returns 404 when invoice detail not found on get', async () => {
+    invoiceDetail.findById.mockResolvedValueOnce(null);
+    const res = await request(app).get('/api/v1/invoice-detail/999').set('Authorization', authHeader);
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 404 when invoice detail not found on update', async () => {
+    invoiceDetail.findByIdAndUpdate.mockResolvedValueOnce(null);
+    const res = await request(app)
+      .put('/api/v1/invoice-detail/999')
+      .set('Authorization', authHeader)
+      .send({ cantidad: 5 });
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 404 when invoice detail not found on delete', async () => {
+    invoiceDetail.findByIdAndDelete.mockResolvedValueOnce(null);
+    const res = await request(app).delete('/api/v1/invoice-detail/999').set('Authorization', authHeader);
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('InvoicePDF endpoints', () => {
+  const mockPDFData = {
+    _id: 'pdfId1',
+    factura_id: 'facturaId1',
+    claveAcceso: '1234567890123456789012345678901234567890123456789',
+    pdf_buffer: Buffer.from('PDF_CONTENT'),
+    email_estado: 'NO_ENVIADO',
+    email_destinatario: null
+  };
+
+  beforeEach(() => {
+    // Reset mocks
+    invoicePDF.find.mockReturnValue({
+      populate: jest.fn().mockResolvedValue([mockPDFData])
+    });
+    invoicePDF.findOne.mockResolvedValue(mockPDFData);
+    invoicePDF.save.mockClear();
+  });
+
+  it('gets all invoice PDFs with populate', async () => {
+    const res = await request(app).get('/api/v1/invoice-pdf').set('Authorization', authHeader);
+    expect(res.status).toBe(200);
+  });
+
+  it('gets PDF by invoice ID', async () => {
+    invoicePDF.findOne.mockResolvedValueOnce(mockPDFData);
+    const res = await request(app).get('/api/v1/invoice-pdf/invoice/facturaId1').set('Authorization', authHeader);
+    expect(res.status).toBe(200);
+    expect(invoicePDF.findOne).toHaveBeenCalledWith({ factura_id: 'facturaId1' });
+  });
+
+  it('returns 404 when PDF not found by invoice ID', async () => {
+    invoicePDF.findOne.mockResolvedValueOnce(null);
+    const res = await request(app).get('/api/v1/invoice-pdf/invoice/nonexistent').set('Authorization', authHeader);
+    expect(res.status).toBe(404);
+  });
+
+  it('gets PDF by access key', async () => {
+    invoicePDF.findOne.mockResolvedValueOnce(mockPDFData);
+    const res = await request(app).get('/api/v1/invoice-pdf/access-key/1234567890123456789012345678901234567890123456789').set('Authorization', authHeader);
+    expect(res.status).toBe(200);
+    expect(invoicePDF.findOne).toHaveBeenCalledWith({ claveAcceso: '1234567890123456789012345678901234567890123456789' });
+  });
+
+  it('returns 404 when PDF not found by access key', async () => {
+    invoicePDF.findOne.mockResolvedValueOnce(null);
+    const res = await request(app).get('/api/v1/invoice-pdf/access-key/nonexistent').set('Authorization', authHeader);
+    expect(res.status).toBe(404);
+  });
+
+  it('downloads PDF file', async () => {
+    invoicePDF.findOne.mockResolvedValueOnce(mockPDFData);
+    const res = await request(app).get('/api/v1/invoice-pdf/download/1234567890123456789012345678901234567890123456789').set('Authorization', authHeader);
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toBe('application/pdf');
+    expect(res.headers['content-disposition']).toContain('attachment');
+  });
+
+  it('returns 404 when PDF buffer not available for download', async () => {
+    invoicePDF.findOne.mockResolvedValueOnce({ ...mockPDFData, pdf_buffer: null });
+    const res = await request(app).get('/api/v1/invoice-pdf/download/1234567890123456789012345678901234567890123456789').set('Authorization', authHeader);
+    expect(res.status).toBe(404);
+    expect(res.body.message).toBe('PDF buffer not available');
+  });
+
+  it('returns 404 when PDF not found for download', async () => {
+    invoicePDF.findOne.mockResolvedValueOnce(null);
+    const res = await request(app).get('/api/v1/invoice-pdf/download/nonexistent').set('Authorization', authHeader);
+    expect(res.status).toBe(404);
+  });
+
+  it('requests PDF regeneration', async () => {
+    const res = await request(app).post('/api/v1/invoice-pdf/regenerate/facturaId1').set('Authorization', authHeader);
+    expect(res.status).toBe(200);
+    expect(res.body.message).toContain('PDF regeneration requested');
+    expect(res.body.facturaId).toBe('facturaId1');
+  });
+
+  it('sends email with PDF', async () => {
+    const pdfWithSave = {
+      ...mockPDFData,
+      save: jest.fn().mockResolvedValue({ ...mockPDFData, email_estado: 'PENDIENTE' })
+    };
+    invoicePDF.findOne.mockResolvedValueOnce(pdfWithSave);
+
+    const res = await request(app)
+      .post('/api/v1/invoice-pdf/send-email/1234567890123456789012345678901234567890123456789')
+      .set('Authorization', authHeader)
+      .send({ email_destinatario: 'test@example.com' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toContain('Email sending request queued');
+    expect(res.body.destinatario).toBe('test@example.com');
+    expect(res.body.estado).toBe('PENDIENTE');
+    expect(pdfWithSave.save).toHaveBeenCalled();
+  });
+
+  it('returns 400 when email destinatario is missing', async () => {
+    const res = await request(app)
+      .post('/api/v1/invoice-pdf/send-email/1234567890123456789012345678901234567890123456789')
+      .set('Authorization', authHeader)
+      .send({});
+    
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Email destinatario is required');
+  });
+
+  it('returns 404 when PDF not found for email sending', async () => {
+    invoicePDF.findOne.mockResolvedValueOnce(null);
+    const res = await request(app)
+      .post('/api/v1/invoice-pdf/send-email/nonexistent')
+      .set('Authorization', authHeader)
+      .send({ email_destinatario: 'test@example.com' });
+    
+    expect(res.status).toBe(404);
+  });
+
+  it('gets email status for PDF', async () => {
+    const pdfWithEmailStatus = {
+      ...mockPDFData,
+      email_estado: 'ENVIADO',
+      email_destinatario: 'test@example.com',
+      email_fecha_envio: new Date(),
+      email_intentos: 1
+    };
+    invoicePDF.findOne.mockResolvedValueOnce(pdfWithEmailStatus);
+
+    const res = await request(app)
+      .get('/api/v1/invoice-pdf/email-status/1234567890123456789012345678901234567890123456789')
+      .set('Authorization', authHeader);
+
+    expect(res.status).toBe(200);
+    expect(res.body.email_estado).toBe('ENVIADO');
+    expect(res.body.email_destinatario).toBe('test@example.com');
+    expect(res.body.email_intentos).toBe(1);
+  });
+
+  it('returns 404 when PDF not found for email status', async () => {
+    invoicePDF.findOne.mockResolvedValueOnce(null);
+    const res = await request(app)
+      .get('/api/v1/invoice-pdf/email-status/nonexistent')
+      .set('Authorization', authHeader);
+    
+    expect(res.status).toBe(404);
+  });
+
+  it('retries email sending', async () => {
+    const pdfWithEmailRetry = {
+      ...mockPDFData,
+      email_estado: 'ERROR',
+      email_ultimo_error: 'Connection failed',
+      save: jest.fn().mockResolvedValue({ ...mockPDFData, email_estado: 'PENDIENTE' })
+    };
+    invoicePDF.findOne.mockResolvedValueOnce(pdfWithEmailRetry);
+
+    const res = await request(app)
+      .post('/api/v1/invoice-pdf/retry-email/1234567890123456789012345678901234567890123456789')
+      .set('Authorization', authHeader);
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toContain('Email retry requested');
+    expect(res.body.estado).toBe('PENDIENTE');
+    expect(pdfWithEmailRetry.save).toHaveBeenCalled();
+  });
+
+  it('returns 400 when trying to retry already sent email', async () => {
+    const pdfAlreadySent = {
+      ...mockPDFData,
+      email_estado: 'ENVIADO'
+    };
+    invoicePDF.findOne.mockResolvedValueOnce(pdfAlreadySent);
+
+    const res = await request(app)
+      .post('/api/v1/invoice-pdf/retry-email/1234567890123456789012345678901234567890123456789')
+      .set('Authorization', authHeader);
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Email already sent successfully');
+  });
+
+  it('returns 404 when PDF not found for email retry', async () => {
+    invoicePDF.findOne.mockResolvedValueOnce(null);
+    const res = await request(app)
+      .post('/api/v1/invoice-pdf/retry-email/nonexistent')
+      .set('Authorization', authHeader);
+    
+    expect(res.status).toBe(404);
+  });
+});
 
 describe('Factura complete endpoint', () => {
   const payload = {

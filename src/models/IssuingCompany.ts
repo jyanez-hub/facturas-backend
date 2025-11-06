@@ -40,15 +40,11 @@ const schema = new Schema<IIssuingCompany>(
     email_notificacion: { type: String },
     certificate: { type: String },
     certificate_password: { type: String },
-    user_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    user_id: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   },
   {
     timestamps: true, // Add createdAt and updatedAt
   },
 );
-
-// Index for better performance
-schema.index({ ruc: 1 });
-schema.index({ user_id: 1 });
 
 export default model<IIssuingCompany>('IssuingCompany', schema);

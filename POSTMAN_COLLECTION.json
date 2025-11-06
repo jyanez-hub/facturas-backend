@@ -1,0 +1,768 @@
+{
+  "info": {
+    "name": "Backend Facturas - API Completa",
+    "description": "Colección completa de endpoints para el sistema de facturación electrónica",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Health Check",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Status de Registro",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Autenticación",
+      "item": [
+        {
+          "name": "Registro de Usuario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.environment.set('token', jsonData.token);",
+                  "    pm.environment.set('company_id', jsonData.company.id);",
+                  "    pm.environment.set('user_id', jsonData.user.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@miempresa.com\",\n  \"password\": \"MiPassword123!\",\n  \"ruc\": \"1799999999001\",\n  \"razon_social\": \"Mi Empresa S.A.\",\n  \"nombre_comercial\": \"Mi Empresa\",\n  \"direccion\": \"Av. Principal 123\",\n  \"telefono\": \"0999999999\",\n  \"codigo_establecimiento\": \"001\",\n  \"punto_emision\": \"001\",\n  \"tipo_ambiente\": 1,\n  \"tipo_emision\": 1,\n  \"masterKey\": \"TU_MASTER_KEY_AQUI\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/register",
+              "host": ["{{base_url}}"],
+              "path": ["register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.environment.set('token', jsonData.token);",
+                  "    if (jsonData.company) {",
+                  "        pm.environment.set('company_id', jsonData.company.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@miempresa.com\",\n  \"password\": \"MiPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth",
+              "host": ["{{base_url}}"],
+              "path": ["auth"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Tipos de Identificación",
+      "item": [
+        {
+          "name": "Crear Tipo de Identificación",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.environment.set('id_type_id', jsonData._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"05\",\n  \"nombre\": \"CEDULA\",\n  \"descripcion\": \"Cédula de identidad\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/identification-type",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "identification-type"]
+            }
+          }
+        },
+        {
+          "name": "Listar Tipos de Identificación",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/identification-type",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "identification-type"]
+            }
+          }
+        },
+        {
+          "name": "Obtener Tipo por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/identification-type/{{id_type_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "identification-type", "{{id_type_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Actualizar Tipo",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descripcion\": \"Cédula de identidad actualizada\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/identification-type/{{id_type_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "identification-type", "{{id_type_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Eliminar Tipo",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/identification-type/{{id_type_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "identification-type", "{{id_type_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Clientes",
+      "item": [
+        {
+          "name": "Crear Cliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.environment.set('client_id', jsonData._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_identificacion_id\": \"{{id_type_id}}\",\n  \"identificacion\": \"0923456789\",\n  \"razon_social\": \"Juan Pérez\",\n  \"email\": \"juan.perez@email.com\",\n  \"telefono\": \"0987654321\",\n  \"direccion\": \"Calle Secundaria 456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/client",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "client"]
+            }
+          }
+        },
+        {
+          "name": "Listar Clientes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/client",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "client"]
+            }
+          }
+        },
+        {
+          "name": "Obtener Cliente por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/client/{{client_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "client", "{{client_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Actualizar Cliente",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"juan.perez.nuevo@email.com\",\n  \"telefono\": \"0999888777\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/client/{{client_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "client", "{{client_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Eliminar Cliente",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/client/{{client_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "client", "{{client_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Productos",
+      "item": [
+        {
+          "name": "Crear Producto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.environment.set('product_id', jsonData._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"PROD001\",\n  \"nombre\": \"Laptop Dell XPS 15\",\n  \"descripcion\": \"Laptop de alto rendimiento\",\n  \"precio_venta\": 1500.00,\n  \"precio_unitario\": 1500.00,\n  \"tiene_iva\": true,\n  \"porcentaje_iva\": 12\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/product",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "product"]
+            }
+          }
+        },
+        {
+          "name": "Listar Productos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/product",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "product"]
+            }
+          }
+        },
+        {
+          "name": "Obtener Producto por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/product/{{product_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "product", "{{product_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Actualizar Producto",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"precio_venta\": 1450.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/product/{{product_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "product", "{{product_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Eliminar Producto",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/product/{{product_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "product", "{{product_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Empresa Emisora",
+      "item": [
+        {
+          "name": "Listar Empresas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/issuing-company",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "issuing-company"]
+            }
+          }
+        },
+        {
+          "name": "Obtener Empresa por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/issuing-company/{{company_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "issuing-company", "{{company_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Actualizar Empresa",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"0987654321\",\n  \"direccion\": \"Nueva dirección actualizada\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/issuing-company/{{company_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "issuing-company", "{{company_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Facturas",
+      "item": [
+        {
+          "name": "Crear Factura Completa",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.factura && jsonData.data.factura.data) {",
+                  "        pm.environment.set('invoice_id', jsonData.data.factura._id);",
+                  "        pm.environment.set('clave_acceso', jsonData.data.factura.data.clave_acceso);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"factura\": {\n    \"infoTributaria\": {\n      \"ruc\": \"1799999999001\",\n      \"secuencial\": \"123\"\n    },\n    \"infoFactura\": {\n      \"fechaEmision\": \"05/11/2025\",\n      \"tipoIdentificacionComprador\": \"05\",\n      \"identificacionComprador\": \"0923456789\",\n      \"totalSinImpuestos\": \"100.00\",\n      \"importeTotal\": \"112.00\"\n    },\n    \"detalles\": [\n      {\n        \"detalle\": {\n          \"codigoPrincipal\": \"PROD001\",\n          \"descripcion\": \"Laptop Dell XPS 15\",\n          \"cantidad\": \"1\",\n          \"precioUnitario\": \"100.00\",\n          \"precioTotalSinImpuesto\": \"100.00\",\n          \"impuestos\": [\n            {\n              \"impuesto\": {\n                \"codigo\": \"2\",\n                \"codigoPorcentaje\": \"2\",\n                \"tarifa\": \"12\",\n                \"baseImponible\": \"100.00\",\n                \"valor\": \"12.00\"\n              }\n            }\n          ]\n        }\n      }\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoice/complete",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoice", "complete"]
+            }
+          }
+        },
+        {
+          "name": "Listar Facturas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoice",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoice"]
+            }
+          }
+        },
+        {
+          "name": "Obtener Factura por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoice/{{invoice_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoice", "{{invoice_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. PDFs de Facturas",
+      "item": [
+        {
+          "name": "Listar todos los PDFs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoice-pdf",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoice-pdf"]
+            }
+          }
+        },
+        {
+          "name": "Obtener PDF por ID de Factura",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoice-pdf/invoice/{{invoice_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoice-pdf", "invoice", "{{invoice_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Obtener PDF por Clave de Acceso",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoice-pdf/access-key/{{clave_acceso}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoice-pdf", "access-key", "{{clave_acceso}}"]
+            }
+          }
+        },
+        {
+          "name": "Descargar PDF",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoice-pdf/download/{{clave_acceso}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoice-pdf", "download", "{{clave_acceso}}"]
+            }
+          }
+        },
+        {
+          "name": "Enviar PDF por Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email_destinatario\": \"cliente@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoice-pdf/send-email/{{clave_acceso}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoice-pdf", "send-email", "{{clave_acceso}}"]
+            }
+          }
+        },
+        {
+          "name": "Verificar Estado de Email",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoice-pdf/email-status/{{clave_acceso}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoice-pdf", "email-status", "{{clave_acceso}}"]
+            }
+          }
+        },
+        {
+          "name": "Reintentar Envío de Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoice-pdf/retry-email/{{clave_acceso}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoice-pdf", "retry-email", "{{clave_acceso}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+

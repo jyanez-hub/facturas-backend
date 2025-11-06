@@ -1,8 +1,6 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import cors from 'cors';
-import { getCorsConfig } from './config/cors.config';
 import swaggerSpec from './swagger';
 import authRoutes from './routes/auth';
 import corsTestRoutes from './routes/cors-test';
@@ -20,25 +18,26 @@ dotenv.config();
 
 const app = express();
 
-// Configurar CORS
-const corsConfig = getCorsConfig();
-app.use(cors(corsConfig));
-
-// Middleware adicional para headers de CORS
+// Configuración CORS ultra permisiva para desarrollo
 app.use((req, res, next) => {
-  // Logs para debugging
-  console.log(`📡 ${req.method} ${req.path} - Origin: ${req.get('Origin') || 'No origin'}`);
-
-  // Headers adicionales de seguridad
+  const origin = req.get('Origin') || '*';
+  
+  // Permitir todos los orígenes en desarrollo
+  res.header('Access-Control-Allow-Origin', origin);
   res.header('Access-Control-Allow-Credentials', 'true');
-
-  // Para peticiones OPTIONS (preflight)
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
+  res.header('Access-Control-Expose-Headers', 'Authorization, Content-Type');
+  
+  // Log para debugging
+  console.log(`📡 ${req.method} ${req.path} - Origin: ${origin}`);
+  
+  // Manejar preflight
   if (req.method === 'OPTIONS') {
     console.log('✅ Preflight request handled');
-    res.status(200).end();
-    return;
+    return res.status(200).end();
   }
-
+  
   next();
 });
 
@@ -109,9 +108,18 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 
 const PORT = process.env.PORT || 3000;
 
+// Validar que MONGODB_URI esté configurado
+const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
+if (!MONGODB_URI) {
+  console.error('❌ Error: MONGODB_URI no está configurado en las variables de entorno');
+  console.error('   Por favor, crea un archivo .env con: MONGODB_URI=mongodb://localhost:27017/f-sri');
+  process.exit(1);
+}
+
 mongoose
-  .connect(process.env.MONGO_URI || '')
+  .connect(MONGODB_URI)
   .then(() => {
+    console.log('✅ MongoDB connected successfully');
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
@@ -120,4 +128,5 @@ mongoose
   })
   .catch((err) => {
     console.error('❌ Database connection error', err);
+    process.exit(1);
   });

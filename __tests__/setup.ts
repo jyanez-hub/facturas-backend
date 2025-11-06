@@ -4,7 +4,7 @@ jest.setTimeout(30000);
 // Mock environment variables for tests
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test_jwt_secret_key_for_testing';
-process.env.MONGO_URI = 'mongodb://localhost:27017/veronica_test';
+process.env.MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/veronica_test';
 
 // Global mocks for CI environment
 if (process.env.CI) {
